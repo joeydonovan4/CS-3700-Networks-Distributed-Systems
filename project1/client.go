@@ -13,6 +13,7 @@ const (
 	defaultPort = 27998
 	sslEnabled  = false
 	buffer      = 256
+	msgPrefix   = "cs3700spring2018"
 )
 
 // maps acceptable operands to wrapper functions that satisfy operationFunc
@@ -122,4 +123,33 @@ func main() {
 	hostname, nuid := args[0], args[1]
 
 	fmt.Printf("port: %d, ssl: %v, hostname: %s, nuid: %s", port, ssl, hostname, nuid)
+
+	conn, err := connectSocket(hostname, *port)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer conn.Close() // close connection when finished
+
+	// say hello
+	message := fmt.Sprintf("%s HELLO %s\n", msgPrefix, nuid)
+	for {
+		// keep reading and writing messages until the program quits in evaluateResponse func
+		if err := writeMessage(message, conn); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		resp, err := readMessage(conn)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		solution, err := evaluateResponse(resp)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		// generate solution message
+		message = fmt.Sprintf("%s %d\n", msgPrefix, solution)
+	}
 }
