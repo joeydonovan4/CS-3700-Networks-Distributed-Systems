@@ -3,13 +3,34 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"os"
+	"strconv"
 )
 
 const (
 	defaultPort = 27998
 	sslEnabled  = false
 )
+
+// creates and connects a socket based on the given host and port #.
+// also sets the read and write buffer sizes to 256 bytes.
+func connectSocket(host string, port int) (net.Conn, error) {
+	strPort := strconv.Itoa(port)
+	servAddr := net.JoinHostPort(host, strPort)
+
+	tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
+	if err != nil {
+		return &net.TCPConn{}, fmt.Errorf("Error resolving TCP address: %s", err.Error())
+	}
+
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		return &net.TCPConn{}, fmt.Errorf("Error dialing TCP: %s", err.Error())
+	}
+
+	return conn, nil
+}
 
 func main() {
 	// read flags and args
