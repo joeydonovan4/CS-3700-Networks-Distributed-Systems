@@ -14,6 +14,23 @@ const (
 	buffer      = 256
 )
 
+// maps acceptable operands to wrapper functions that satisfy operationFunc
+var acceptableOperands = map[string]operationFunc{
+	"+": add,
+	"-": subtract,
+	"*": multiply,
+	"/": divide,
+}
+
+// type that accepts two numbers and returns a number as a result.
+// add, subtract, multiply, and divide below all satisfy this type.
+type operationFunc func(int, int) int
+
+func add(num1, num2 int) int      { return num1 + num2 }
+func subtract(num1, num2 int) int { return num1 - num2 }
+func multiply(num1, num2 int) int { return num1 * num2 }
+func divide(num1, num2 int) int   { return num1 / num2 }
+
 // creates and connects a socket based on the given host and port #.
 // also sets the read and write buffer sizes to 256 bytes.
 func connectSocket(host string, port int) (net.Conn, error) {
@@ -51,6 +68,23 @@ func readMessage(conn net.Conn) (string, error) {
 		return "", fmt.Errorf("Error reading message from server: %s", err.Error())
 	}
 	return string(resp), nil
+}
+
+// evaluates an expression returned by the server in a STATUS message
+func evalExpr(num1, operand, num2 string) (int, error) {
+	first, err := strconv.Atoi(num1)
+	if err != nil {
+		return 0, err
+	}
+	second, err := strconv.Atoi(num2)
+	if err != nil {
+		return 0, err
+	}
+	operation, ok := acceptableOperands[operand]
+	if !ok {
+		return 0, fmt.Errorf("Unrecognized operand returned")
+	}
+	return operation(first, second), nil
 }
 
 func main() {
