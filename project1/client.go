@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	defaultPort = 27998
-	sslEnabled  = false
-	buffer      = 256
-	msgPrefix   = "cs3700spring2018"
+	defaultPort    = 27998
+	defaultSSLPort = 27999
+	sslEnabled     = false
+	buffer         = 256
+	msgPrefix      = "cs3700spring2018"
 )
 
 // maps acceptable operands to wrapper functions that satisfy operationFunc
@@ -128,14 +129,19 @@ func main() {
 	ssl := flag.Bool("s", sslEnabled, "enable ssl if provided")
 	flag.Parse()
 
+	// hacky-ish way to set the port to the SSL default port
+	// assuming the user did not explicitly define the port in
+	// the command line args to be port 27998
+	if *ssl && *port == defaultPort {
+		*port = defaultSSLPort
+	}
+
 	args := flag.Args()
 	if len(args) != 2 {
 		fmt.Println("Must only provide a hostname and NUID as arguments.")
 		os.Exit(1)
 	}
 	hostname, nuid := args[0], args[1]
-
-	fmt.Printf("port: %d, ssl: %v, hostname: %s, nuid: %s", port, ssl, hostname, nuid)
 
 	conn, err := connectSocket(hostname, *port, *ssl)
 	if err != nil {
