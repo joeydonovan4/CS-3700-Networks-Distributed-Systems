@@ -11,6 +11,7 @@ import (
 const (
 	defaultPort = 27998
 	sslEnabled  = false
+	buffer      = 256
 )
 
 // creates and connects a socket based on the given host and port #.
@@ -30,6 +31,26 @@ func connectSocket(host string, port int) (net.Conn, error) {
 	}
 
 	return conn, nil
+}
+
+// writes a message to the server and returns an error if the write fails.
+func writeMessage(message string, conn net.Conn) error {
+	_, err := conn.Write([]byte(message))
+	if err != nil {
+		return fmt.Errorf("Error writing message %s to server: %s", message, err.Error())
+	}
+	return nil
+}
+
+// reads a message from the server and returns an error if the read fails.
+// the response is converted to a string.
+func readMessage(conn net.Conn) (string, error) {
+	resp := make([]byte, buffer)
+	_, err := conn.Read(resp)
+	if err != nil {
+		return "", fmt.Errorf("Error reading message from server: %s", err.Error())
+	}
+	return string(resp), nil
 }
 
 func main() {
