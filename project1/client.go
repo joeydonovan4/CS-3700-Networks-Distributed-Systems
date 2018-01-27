@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -68,6 +69,26 @@ func readMessage(conn net.Conn) (string, error) {
 		return "", fmt.Errorf("Error reading message from server: %s", err.Error())
 	}
 	return string(resp), nil
+}
+
+// evaluates a response from a server and determines its validity.
+// returns an error if deemed to be an unexpected response.
+func evaluateResponse(resp string) (int, error) {
+	fields := strings.Fields(resp)
+	if fields[1] == "STATUS" {
+		solution, err := evalExpr(fields[2], fields[3], fields[4]) // evaluate the given expression
+		if err != nil {
+			return 0, err
+		}
+		return solution, nil
+	} else if fields[2] == "BYE" {
+		secretFlag := fields[1]
+		fmt.Printf("%v\n", secretFlag) // print secret flag and exit
+		os.Exit(0)
+		return 0, nil
+	} else {
+		return 0, fmt.Errorf("Unexpected response from server. %q", fields)
+	}
 }
 
 // evaluates an expression returned by the server in a STATUS message
