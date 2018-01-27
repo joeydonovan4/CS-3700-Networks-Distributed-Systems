@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"net"
@@ -35,20 +36,32 @@ func divide(num1, num2 int) int   { return num1 / num2 }
 
 // creates and connects a socket based on the given host and port #.
 // also sets the read and write buffer sizes to 256 bytes.
-func connectSocket(host string, port int) (net.Conn, error) {
+func connectSocket(host string, port int, ssl bool) (net.Conn, error) {
 	strPort := strconv.Itoa(port)
 	servAddr := net.JoinHostPort(host, strPort)
 
-	tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
-	if err != nil {
-		return &net.TCPConn{}, fmt.Errorf("Error resolving TCP address: %s", err.Error())
-	}
+	var (
+		conn net.Conn
+		err  error
+	)
+	if ssl {
+		conn, err = tls.Dial("tcp", servAddr, &tls.Config{
+			InsecureSkipVerify: true, // typically unsafe, but ok for this project
+		})
+		if err != nil {
+			return &tls.Conn{}, err
+		}
+	} else {
+		tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
+		if err != nil {
+			return &net.TCPConn{}, fmt.Errorf("Error resolving TCP address: %s", err.Error())
+		}
 
-	conn, err := net.DialTCP("tcp", nil, tcpAddr)
-	if err != nil {
-		return &net.TCPConn{}, fmt.Errorf("Error dialing TCP: %s", err.Error())
+		conn, err = net.DialTCP("tcp", nil, tcpAddr)
+		if err != nil {
+			return &net.TCPConn{}, fmt.Errorf("Error dialing TCP: %s", err.Error())
+		}
 	}
-
 	return conn, nil
 }
 
@@ -124,7 +137,7 @@ func main() {
 
 	fmt.Printf("port: %d, ssl: %v, hostname: %s, nuid: %s", port, ssl, hostname, nuid)
 
-	conn, err := connectSocket(hostname, *port)
+	conn, err := connectSocket(hostname, *port, *ssl)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
